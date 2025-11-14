@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="layout">
+    <div class="card">
+        <h2 style="margin-top:0">XML Validator</h2>
+        <p class="muted">Upload an XML and its XSD to check if the document conforms to the schema.</p>
+
+        <form method="post" action="/validate_xml" enctype="multipart/form-data">
+            <label class="file-label" id="xmlLabel">Choose XML file</label>
+            <input type="file" id="xmlfile" name="xmlfile" accept=".xml" required>
+
+            <label class="file-label" id="xsdLabel" style="margin-top:10px">Choose XSD file</label>
+            <input type="file" id="xsdfile" name="xsdfile" accept=".xsd" required>
+
+            <div style="margin-top:12px">
+                <button class="btn" type="submit">Validate XML</button>
+            </div>
+        </form>
+    </div>
+
+    <aside class="card">
+        <h4 style="margin:0">Tips</h4>
+        <p class="muted">Use the schema generator first if you don't have an XSD. Large files may take longer to
+            validate.</p>
+    </aside>
+</div>
+
+{% if message %}
+<div class="card">
+    <h3 style="margin-top:0">Result</h3>
+    <style>
+        pre.result.valid {
+            color: green;
+        }
+
+        pre.result.invalid {
+            color: red;
+        }
+    </style>
+    <pre class="result {% if valid %}valid{% else %}invalid{% endif %}">{{ message }}</pre>
+    {% if not valid %}
+    <p class="muted">If validation failed, try generating a schema from the XML and inspecting differences.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+    document.getElementById('xmlLabel').addEventListener('click', () => document.getElementById('xmlfile').click());
+    document.getElementById('xsdLabel').addEventListener('click', () => document.getElementById('xsdfile').click());
+
+    document.getElementById('xmlfile').addEventListener('change', function () {
+        const f = this.files[0];
+        document.getElementById('xmlLabel').textContent = f ? f.name : 'Choose XML file';
+    });
+    document.getElementById('xsdfile').addEventListener('change', function () {
+        const f = this.files[0];
+        document.getElementById('xsdLabel').textContent = f ? f.name : 'Choose XSD file';
+    });
+</script>
+
+{% endblock %}
