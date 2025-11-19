@@ -6,12 +6,25 @@
         <p class="muted">Upload an XML document to generate a simple XSD that reflects the document structure.</p>
 
         <form method="post" action="/generate_schema" enctype="multipart/form-data">
-            <label class="file-label" id="xmlLabel">Choose XML file (required)</label>
+            <label class="file-label" id="xmlLabel" for="xmlfile">Choose XML file (required)</label>
             <input type="file" name="xmlfile" id="xmlfile" accept=".xml" required>
             <div style="margin-top:10px">
                 <button class="btn" type="submit">Generate Schema</button>
             </div>
         </form>
+        <script>
+            // Update label text on file selection (label click handled natively via for="xmlfile")
+            (function () {
+                const label = document.getElementById('xmlLabel');
+                const input = document.getElementById('xmlfile');
+                if (label && input) {
+                    input.addEventListener('change', () => {
+                        const f = input.files[0];
+                        label.textContent = f ? f.name : 'Choose XML file (required)';
+                    });
+                }
+            })();
+        </script>
     </div>
 
     <aside class="card">
@@ -30,20 +43,18 @@
     <pre class="code-block" id="schemaBlock">{{ schema_text }}</pre>
 </div>
 <script>
-    document.getElementById('xmlLabel').addEventListener('click', () => document.getElementById('xmlfile').click());
-    document.getElementById('xmlfile').addEventListener('change', function () {
-        const f = this.files[0];
-        document.getElementById('xmlLabel').textContent = f ? f.name : 'Choose XML file (required)';
-    });
-
-    const copyBtn = document.getElementById('copySchema');
-    copyBtn.addEventListener('click', () => {
-        const text = document.getElementById('schemaBlock').textContent;
-        navigator.clipboard && navigator.clipboard.writeText(text).then(() => {
-            copyBtn.textContent = 'Copied';
-            setTimeout(() => copyBtn.textContent = 'Copy', 1200);
-        }, () => { alert('Copy failed — select and copy manually.'); });
-    });
+    // Copy button only present when schema_text exists
+    (function () {
+        const copyBtn = document.getElementById('copySchema');
+        if (!copyBtn) return;
+        copyBtn.addEventListener('click', () => {
+            const text = document.getElementById('schemaBlock').textContent;
+            navigator.clipboard && navigator.clipboard.writeText(text).then(() => {
+                copyBtn.textContent = 'Copied';
+                setTimeout(() => copyBtn.textContent = 'Copy', 1200);
+            }, () => { alert('Copy failed — select and copy manually.'); });
+        });
+    })();
 </script>
 {% endif %}
 

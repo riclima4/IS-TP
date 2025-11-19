@@ -1,28 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="layout">
-    <div class="card">
-        <h2 style="margin-top:0">XML Validator</h2>
-        <p class="muted">Upload an XML and its XSD to check if the document conforms to the schema.</p>
+<div class="card">
+    <h2 style="margin-top:0">XML Validator</h2>
+    <p class="muted">Upload an XML and its XSD to check if the document conforms to the schema.</p>
 
-        <form method="post" action="/validate_xml" enctype="multipart/form-data">
-            <label class="file-label" id="xmlLabel">Choose XML file</label>
-            <input type="file" id="xmlfile" name="xmlfile" accept=".xml" required>
-
-            <label class="file-label" id="xsdLabel" style="margin-top:10px">Choose XSD file</label>
-            <input type="file" id="xsdfile" name="xsdfile" accept=".xsd" required>
-
-            <div style="margin-top:12px">
-                <button class="btn" type="submit">Validate XML</button>
+    <form method="post" action="/validate_xml" enctype="multipart/form-data">
+        <div class="val-pair" style="display:flex;flex-wrap:wrap;gap:20px;margin-top:4px">
+            <div class="drop-zone" data-placeholder="Choose XML file" id="valXmlZone" style="flex:1;min-width:260px">
+                <span class="dz-label">Choose XML file</span>
+                <input type="file" id="xmlfile" name="xmlfile" accept=".xml" required style="display:none">
+                <small>Drag & drop XML here or click</small>
             </div>
-        </form>
-    </div>
-
-    <aside class="card">
-        <h4 style="margin:0">Tips</h4>
-        <p class="muted">Use the schema generator first if you don't have an XSD. Large files may take longer to
-            validate.</p>
-    </aside>
+            <div class="drop-zone" data-placeholder="Choose XSD file" id="valXsdZone" style="flex:1;min-width:260px">
+                <span class="dz-label">Choose XSD file</span>
+                <input type="file" id="xsdfile" name="xsdfile" accept=".xsd" required style="display:none">
+                <small>Drag & drop XSD here or click</small>
+            </div>
+        </div>
+        <div style="margin-top:18px">
+            <button class="btn" type="submit">Validate XML</button>
+        </div>
+    </form>
 </div>
 
 {% if message %}
@@ -45,16 +43,13 @@
 {% endif %}
 
 <script>
-    document.getElementById('xmlLabel').addEventListener('click', () => document.getElementById('xmlfile').click());
-    document.getElementById('xsdLabel').addEventListener('click', () => document.getElementById('xsdfile').click());
-
-    document.getElementById('xmlfile').addEventListener('change', function () {
-        const f = this.files[0];
-        document.getElementById('xmlLabel').textContent = f ? f.name : 'Choose XML file';
-    });
-    document.getElementById('xsdfile').addEventListener('change', function () {
-        const f = this.files[0];
-        document.getElementById('xsdLabel').textContent = f ? f.name : 'Choose XSD file';
+    ['valXmlZone', 'valXsdZone'].forEach(id => {
+        const zone = document.getElementById(id);
+        if (zone) {
+            zone.addEventListener('dragenter', () => zone.style.transform = 'scale(1.02)');
+            zone.addEventListener('dragleave', () => zone.style.transform = 'scale(1)');
+            zone.addEventListener('drop', () => zone.style.transform = 'scale(1)');
+        }
     });
 </script>
 

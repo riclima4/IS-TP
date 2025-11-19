@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h2 style="margin-top:0">XML Tool</h2>
+    <p class="muted">Convert CSV to XML or generate an XSD schema from an XML document — all in one place.</p>
+
+    <form method="post" enctype="multipart/form-data" style="margin-bottom:28px">
+        <input type="hidden" name="op" value="csv" />
+        <div
+            style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;margin:16px 0 8px">
+            <h3 style="margin:0">CSV → XML</h3>
+            <input type="number" name="max_lines" placeholder="Max lines (optional)" min="1"
+                style="max-width:160px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px" />
+        </div>
+        <div class="drop-zone" data-placeholder="Choose CSV file" id="csvZone">
+            <span class="dz-label">Choose CSV file</span>
+            <input type="file" id="csvfile" name="csvfile" accept=".csv" required style="display:none">
+            <small>Drag & drop your .csv here or click</small>
+        </div>
+        <div class="controls" style="margin-top:10px">
+            <button class="btn" type="submit">Preview XML</button>
+            <!-- Persist generated XML so Download works without re-upload -->
+            <input type="hidden" name="xml_data" value="{{ xml_output|e }}" />
+            <input type="hidden" name="xml_filename"
+                value="{{ (download_filename or 'output.xml') if download_filename is defined else 'output.xml' }}" />
+            <button class="btn secondary" name="download" value="xml" type="submit" formnovalidate>Download XML</button>
+        </div>
+    </form>
+
+    {% if xml_output %}
+    <div class="card" style="background:#f8fafc">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <strong>Preview XML</strong>
+        </div>
+        <pre class="code-block" id="xmlBlock" style="max-height:280px">{{ xml_output }}</pre>
+    </div>
+    {% endif %}
+
+    <hr style="margin:28px 0;border:none;border-top:1px solid #e2e8f0" />
+
+    <h3 style="margin:32px 0 8px">XML → Schema (XSD)</h3>
+    <form method="post" enctype="multipart/form-data" style="margin-bottom:28px">
+        <input type="hidden" name="op" value="schema" />
+        <div class="drop-zone" data-placeholder="Choose XML file" id="xmlZone">
+            <span class="dz-label">Choose XML file</span>
+            <input type="file" id="xmlfile" name="xmlfile" accept=".xml" required style="display:none">
+            <small>Drag & drop your .xml here or click</small>
+        </div>
+        <div class="controls" style="margin-top:10px">
+            <button class="btn" type="submit">Preview XSD</button>
+            <!-- Persist generated XSD so Download works without re-upload -->
+            <input type="hidden" name="xsd_data" value="{{ xsd_output|e }}" />
+            <input type="hidden" name="xsd_filename"
+                value="{{ (download_filename or 'schema.xsd') if download_filename is defined else 'schema.xsd' }}" />
+            <button class="btn secondary" name="download" value="xsd" type="submit" formnovalidate>Download XSD</button>
+        </div>
+    </form>
+    {% if xsd_output %}
+    <div class="card" style="background:#f8fafc">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <strong>Preview XSD</strong>
+        </div>
+        <pre class="code-block" id="xsdBlock" style="max-height:280px">{{ xsd_output }}</pre>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="card" style="background:#fff3f3;border:1px solid #fecaca;color:#b91c1c">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Additional visual tweaks after global script sets labels
+    ['csvZone', 'xmlZone'].forEach(id => {
+        const zone = document.getElementById(id);
+        if (zone) {
+            zone.addEventListener('dragenter', () => zone.style.transform = 'scale(1.02)');
+            zone.addEventListener('dragleave', () => zone.style.transform = 'scale(1)');
+            zone.addEventListener('drop', () => zone.style.transform = 'scale(1)');
+        }
+    });
+
+    const copyXmlBtn = document.getElementById('copyXml');
+    if (copyXmlBtn) {
+        copyXmlBtn.addEventListener('click', () => {
+            const txt = document.getElementById('xmlBlock').textContent;
+            navigator.clipboard.writeText(txt).then(() => {
+                copyXmlBtn.textContent = 'Copied';
+                setTimeout(() => copyXmlBtn.textContent = 'Copy', 1200);
+            });
+        });
+    }
+    const copyXsdBtn = document.getElementById('copyXsd');
+    if (copyXsdBtn) {
+        copyXsdBtn.addEventListener('click', () => {
+            const txt = document.getElementById('xsdBlock').textContent;
+            navigator.clipboard.writeText(txt).then(() => {
+                copyXsdBtn.textContent = 'Copied';
+                setTimeout(() => copyXsdBtn.textContent = 'Copy', 1200);
+            });
+        });
+    }
+</script>
+{% endblock %}
