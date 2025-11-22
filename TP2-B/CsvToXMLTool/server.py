@@ -332,8 +332,8 @@ def validate_xml():
 def import_page():
     """Render a page to upload an XML and send it to an XML-RPC server."""
     # Defaults can be adjusted as needed
-    default_server_url = os.environ.get("XMLRPC_SERVER_URL", "http://localhost:8000")
-    default_method = os.environ.get("XMLRPC_METHOD", "save_xml")
+    default_server_url = os.environ.get("XMLRPC_SERVER_URL", "http://server-firebase:8000")
+    default_method = os.environ.get("XMLRPC_METHOD", "process_xml")
     return render_template(
         "import.html",
         page="xml_import",
@@ -346,8 +346,10 @@ def import_page():
 def send_to_db():
     """Receive uploaded XML and forward it to an XML-RPC server. Does not implement any DB logic here."""
     xml_file = request.files.get("xmlfile")
-    server_url = request.form.get("server_url") or os.environ.get("XMLRPC_SERVER_URL", "http://localhost:8000")
-    method_name = request.form.get("method_name") or os.environ.get("XMLRPC_METHOD", "save_xml")
+    server_url = request.form.get("server_url") or "http://server-firebase:8000"
+    method_name = request.form.get("method_name") or "process_xml"
+
+
 
     if not xml_file:
         return render_template(
@@ -381,7 +383,7 @@ def send_to_db():
         proxy = xmlrpc.client.ServerProxy(server_url, allow_none=True)
         if hasattr(proxy, method_name):
             # Send the actual XML content as a string (preferred by XML-RPC)
-            result = getattr(proxy, method_name)(xml_text)
+            result = getattr(proxy, method_name)(xml_text, xml_file.filename)
         else:
             return render_template(
                 "import.html",

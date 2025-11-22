@@ -4,7 +4,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import xml.etree.ElementTree as ET
 
-cred = credentials.Certificate("tp2-b-782a3-firebase-adminsdk-fbsvc-7eeb6d016c.json")
+cred = credentials.Certificate("tp2-b-782a3-firebase-adminsdk-fbsvc-1737b34933.json")
 firebase_admin.initialize_app(cred)
 
 # Inicializa o Firestore
@@ -18,7 +18,7 @@ server = SimpleXMLRPCServer(('0.0.0.0', 8000), requestHandler=RequestHandler)
 server.register_introspection_functions()
 
 # Função para processar o XML e salvar no Firestore
-def process_xml_and_save_to_firebase(xml_data):
+def process_xml_and_save_to_firebase(xml_data, xml_filename):
     try:
         # Verifica se o XML está vazio
         if not xml_data.strip():
@@ -36,7 +36,9 @@ def process_xml_and_save_to_firebase(xml_data):
                 data[elem.tag] = elem.text  # Cria um campo para cada tag XML
 
             # Salva os dados no Firestore como um novo documento na coleção 'TP2-B'
-            db_firestore.collection('TP2-B').add(data)
+            collection_name = xml_filename.replace(".xml", "")
+            db_firestore.collection(collection_name).add(data)
+
 
         return "Dados gravados com sucesso no Firestore"
     except ET.ParseError:
