@@ -378,7 +378,7 @@ def send_to_db():
 
     xml_bytes = xml_file.read()
     xml_text = _decode_xml_bytes(xml_bytes)
-
+    
     try:
         proxy = xmlrpc.client.ServerProxy(server_url, allow_none=True)
         if hasattr(proxy, method_name):
@@ -394,14 +394,7 @@ def send_to_db():
                 default_method=method_name,
             ), 400
 
-        return render_template(
-            "import.html",
-            page="xml_import",
-            message=f"XML sent successfully. Server response: {result}",
-            success=True,
-            default_server_url=server_url,
-            default_method=method_name,
-        )
+        
     except Exception as e:
         return render_template(
             "import.html",
