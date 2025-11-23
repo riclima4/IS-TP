@@ -1,0 +1,18 @@
+TP3
+
+FrontEnd:
+*1 parte: Store do csv numa folder shared com o Docker.
+
+*2 parte: Selecionar o csv para converter para xsd e xml.
+
+*3 parte: Lista com todos os xml/xsd que existem na pasta. (com botão para validar).
+
+*4 parte: Botão para guardar info do xml numa DB (cada csv/xml é uma colection, cada row é um documento novo).
+
+
+
+python -m grpc_tools.protoc -Igrpc-server --python_out=grpc-server --pyi_out=grpc-server --grpc_python_out=grpc-server grpc-server/grpc.proto
+
+Mongo Compass app
+
+Docker compose up --build
