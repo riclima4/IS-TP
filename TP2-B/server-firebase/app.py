@@ -4,7 +4,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 import xml.etree.ElementTree as ET
 
-cred = credentials.Certificate("tp2-b-782a3-firebase-adminsdk-fbsvc-1737b34933.json")
+cred = credentials.Certificate("chave-privada.json")
 firebase_admin.initialize_app(cred)
 
 # Inicializa o Firestore
