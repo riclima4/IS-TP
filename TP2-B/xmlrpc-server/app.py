@@ -151,34 +151,43 @@ def validate_xml_against_xsd(xml_filename, xsd_filename):
 
 # Função para processar o XML e salvar no Firestore
 def process_xml_and_save_to_firebase(xml_filename):
+    # valida nome simples (evita path traversal)
+    if Path(xml_filename).name != xml_filename:
+        return "Erro: nome de arquivo inválido"
+
     xml_file = DATAFOLDER / xml_filename
     if not xml_file.exists():
         return "Erro: arquivo XML não encontrado"
-    with xml_file.open('r', encoding='utf-8') as f:
-        xml_data = f.read()
+
     try:
-        # Verifica se o XML está vazio
-        if not xml_data.strip():
-            return "Erro: XML vazio"
+        # Verifica se o XML está vazio rapidamente sem carregar tudo no parser
+        with xml_file.open('r', encoding='utf-8') as f:
+            preview = f.read(2048)
+            if not preview.strip():
+                return "Erro: XML vazio"
 
-        # Parse do XML recebido
-        root = ET.fromstring(xml_data)
+        collection_name = xml_filename.replace(".xml", "")
+        documentos = 0
 
-        # Itera sobre os dados XML e armazena no Firestore
-        for child in root:
-            data = {}
+        # Usa iterparse para processamento em streaming (menor uso de memória)
+        for event, elem in etree.iterparse(str(xml_file), events=("end",)):
+            if elem.tag == "record":
+                data = {}
+                for child in elem:
+                    data[child.tag] = (child.text or "").strip()
+                db_firestore.collection(collection_name).add(data)
+                documentos += 1
+                # Libera memória do elemento já processado
+                elem.clear()
+                parent = elem.getparent()
+                if parent is not None:
+                    for ancestor in parent.iterancestors():
+                        ancestor.clear()
 
-            # Itera sobre os filhos de cada 'record' no XML e armazena como chave-valor
-            for elem in child:
-                data[elem.tag] = elem.text  # Cria um campo para cada tag XML
-
-            # Salva os dados no Firestore como um novo documento na coleção 'TP2-B'
-            collection_name = xml_filename.replace(".xml", "")
-            db_firestore.collection(collection_name).add(data)
-
-
-        return "Dados gravados com sucesso no Firestore"
-    except ET.ParseError:
+        if documentos == 0:
+            return "Aviso: nenhum elemento <record> encontrado"
+        return f"Dados gravados com sucesso no Firestore ({documentos} registros)"
+    except (etree.XMLSyntaxError, ET.ParseError):
         return "Erro: XML mal formado"
     except Exception as e:
         return f"Erro ao processar o XML: {str(e)}"
