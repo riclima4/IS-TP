@@ -1,0 +1,18 @@
+services:
+  xmlrpc-server:
+    build: ./xmlrpc-server
+    container_name: xmlrpc-server
+    volumes: 
+      - ./data:/data/shared
+    ports:
+      - "8000:8000"
+
+  xml-tool:
+    build: ./xml-tool
+    container_name: xml-tool
+    volumes:
+      - ./data:/data/shared
+    ports:
+      - "5000:5000"
+    depends_on:
+      - xmlrpc-server

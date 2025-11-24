@@ -2,3 +2,4 @@ flask
 pandas
 xmlschema
 lxml
+requests
