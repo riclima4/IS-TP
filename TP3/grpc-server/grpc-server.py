@@ -3,12 +3,8 @@ import subprocess
 import sys
 import time
 from concurrent import futures
+import grpc
 
-try:
-    import grpc
-except ImportError:
-    print("grpc not installed. Run: python -m pip install -r requirements.txt")
-    raise
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROTO = os.path.join(HERE, "grpc.proto")
@@ -34,7 +30,7 @@ def _maybe_generate_protos():
     ]
     print("Running:", " ".join(cmd))
     subprocess.check_call(cmd)
-    print("Generated rpc_pb2.py and rpc_pb2_grpc.py")
+    print("Generated grpc_pb2.py and grpc_pb2_grpc.py")
 
 
 _maybe_generate_protos()
@@ -48,7 +44,7 @@ class GreeterServicer(grpc_pb2_grpc.GreeterServicer):
 
     def SayHello(self, request, context):
         name = request.name or "world"
-        return rpc_pb2.HelloReply(message=f"Hello, {name}!")
+        return grpc_pb2.HelloReply(message=f"Hello, {name}!")
 
 
 def serve(host="0.0.0.0", port=50051):
