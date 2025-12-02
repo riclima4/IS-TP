@@ -1,2 +1,7 @@
 flask
+pandas
+xmlschema
+lxml
 requests
+grpcio
+grpcio-tools

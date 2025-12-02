@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CSV & XML Tool</title>
+    <style>
+        :root {
+            --bg: #f6f8fb;
+            --surface: #ffffff;
+            --muted: #6b7280;
+            --accent: #2563eb;
+            --accent-2: #10b981;
+            --shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+            --radius: 10px;
+            --max-width: 1280px;
+            --code-bg: #0b1220;
+            --code-fg: #e6eef6;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background-color: var(--bg);
+            margin: 0;
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background: linear-gradient(90deg, var(--accent), #7c3aed);
+            color: white;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+        }
+
+        header .wrap {
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        header nav {
+            margin-top: 10px;
+        }
+
+        header .brand div div {
+            display: inline;
+        }
+
+        .wrap {
+            max-width: var(--max-width);
+            margin: 22px auto;
+            padding: 0 20px 60px;
+        }
+
+        .brand {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            font-weight: 600;
+            font-size: 24px
+        }
+
+        nav {
+            margin-top: 12px;
+            display: flex;
+            gap: 16px;
+            align-items: center
+        }
+
+        nav a {
+            position: relative;
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 22px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06));
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.18);
+            transition: all .18s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.32);
+            color: #ffffff;
+            box-shadow: 0 6px 14px -3px rgba(0, 0, 0, 0.24);
+        }
+
+        nav a.active {
+            background: #ffffff;
+            color: #1e3a8a;
+            box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Drag & Drop zone */
+        .drop-zone {
+            position: relative;
+            border: 2px dashed #cbd5e1;
+            background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+            border-radius: 14px;
+            padding: 26px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+            font-size: 14px;
+            color: #475569;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+        }
+
+        .drop-zone:hover {
+            border-color: #94a3b8;
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: linear-gradient(180deg, #eff6ff, #e0f2fe);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            color: #1e3a8a;
+        }
+
+        .drop-zone.error {
+            border-color: #dc2626 !important;
+            background: linear-gradient(180deg, #fff1f2, #ffe4e6) !important;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.18) !important;
+            color: #b91c1c !important;
+        }
+
+        .drop-zone .dz-error-msg {
+            position: absolute;
+            bottom: 8px;
+            left: 12px;
+            right: 12px;
+            font-size: 11px;
+            color: #b91c1c;
+            font-weight: 500;
+        }
+
+        .drop-zone .dz-label {
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .drop-zone small {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .stack {
+            display: grid;
+            gap: 20px;
+        }
+
+        .container {
+            margin-top: 18px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 18px;
+        }
+
+        form .row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .file-label {
+            display: inline-block;
+            background: linear-gradient(180deg, #f8fafc, #eef2ff);
+            border: 1px dashed #e6e9ef;
+            padding: 12px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--muted)
+        }
+
+        input[type="file"] {
+            display: none
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 8px
+        }
+
+        input[type="number"],
+        .btn,
+        .select {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #e6eef7;
+            background: white
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn.secondary {
+            background: var(--accent-2)
+        }
+
+        pre {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            overflow: auto
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            color: var(--code-fg);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        footer {
+            max-width: var(--max-width);
+            margin: 20px auto;
+            padding: 0 20px 40px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        @media (min-width:800px) {
+            .layout {
+                display: grid;
+                grid-template-columns: 1fr 360px;
+                gap: 20px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="wrap">
+            <div class="brand">
+                CSV & XML Tool
+            </div>
+        </div>
+    </header>
+
+    <main class="wrap container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        Built for coursework.
+    </footer>
+
+</body>
+
+<script>
+    // Global drag & drop initializer
+    (function () {
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            const input = zone.querySelector('input[type=file]');
+            const labelSpan = zone.querySelector('.dz-label');
+            const placeholder = zone.dataset.placeholder || 'Choose file';
+            const acceptAttr = (input && input.getAttribute('accept')) || '';
+            // Build allowed extensions from accept attribute (e.g. ".csv,.xml,.xsd")
+            const allowedExts = acceptAttr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            let errorTimeout = null;
+
+            function clearError() {
+                zone.classList.remove('error');
+                const errEl = zone.querySelector('.dz-error-msg');
+                if (errEl) errEl.remove();
+                if (errorTimeout) { clearTimeout(errorTimeout); errorTimeout = null; }
+            }
+            function showError(msg) {
+                clearError();
+                zone.classList.add('error');
+                const div = document.createElement('div');
+                div.className = 'dz-error-msg';
+                div.textContent = msg;
+                zone.appendChild(div);
+                errorTimeout = setTimeout(clearError, 3000);
+            }
+            function isAllowed(file) {
+                if (allowedExts.length === 0) return true; // no restriction
+                const name = file.name.toLowerCase();
+                return allowedExts.some(ext => name.endsWith(ext));
+            }
+            function setLabel() {
+                labelSpan.textContent = (input.files && input.files.length) ? input.files[0].name : placeholder;
+            }
+            zone.addEventListener('click', () => input.click());
+            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            zone.addEventListener('drop', e => {
+                e.preventDefault(); zone.classList.remove('dragover');
+                if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                    const f = e.dataTransfer.files[0];
+                    if (!isAllowed(f)) {
+                        showError('Invalid file type');
+                        return;
+                    }
+                    clearError();
+                    input.files = e.dataTransfer.files;
+                    setLabel();
+                }
+            });
+            input.addEventListener('change', () => {
+                if (input.files && input.files.length) {
+                    const f = input.files[0];
+                    if (!isAllowed(f)) {
+                        showError('Invalid file type');
+                        input.value = '';
+                        setLabel();
+                        return;
+                    }
+                    clearError();
+                }
+                setLabel();
+            });
+            setLabel();
+        });
+    })();
+</script>
+
+</html>

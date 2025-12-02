@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    {% if success %}
+    <div class="card flash-card" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d">
+        <strong>Success:</strong> {{ message }}
+    </div>
+    {% endif %}
+    {% if error %}
+    <div class="card flash-card" style="background:#fff3f3;border:1px solid #fecaca;color:#b91c1c">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.flash-card');
+            cards.forEach(card => {
+                setTimeout(() => {
+                    card.style.transition = 'opacity .4s, transform .4s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(-6px)';
+                    setTimeout(() => card.remove(), 450);
+                }, 5000); // 5s timeout
+            });
+        });
+    </script>
+    <form method="post" action="/convert" enctype="multipart/form-data" style="margin-bottom:28px">
+        <div
+            style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;margin:16px 0 8px">
+            <h3 style="margin:0">Upload CSV</h3>
+        </div>
+        <div class="drop-zone" data-placeholder="Choose CSV file" id="csvZone">
+            <span class="dz-label">Choose CSV file</span>
+            <input type="file" id="csvfile" name="csvfile" accept=".csv" required style="display:none">
+            <small>Drag & drop your .csv here or click</small>
+        </div>
+        <div class="controls" style="margin-top:10px">
+            <button class="btn secondary" type="submit">Upload CSV</button>
+        </div>
+    </form>
+
+    <div style="margin-bottom:24px">
+        <strong style="display:block;margin-bottom:6px">Existing CSV files</strong>
+        {% if csv_files and csv_files|length > 0 %}
+        <ul
+            style="list-style:none;padding:0;margin:0;max-height:220px;overflow:auto;border:1px solid #e2e8f0;border-radius:6px">
+            {% for f in csv_files %}
+            <li
+                style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:0.9rem">
+                <span>{{ f }}</span>
+                <div style="display:flex;gap:6px">
+                    <form method="post" action="/rpc_generate_xml" style="margin:0">
+                        <input type="hidden" name="csv_name" value="{{ f }}" />
+                        <button class="btn" type="submit"
+                            style="padding:4px 10px;font-size:0.9rem;background-color:#2563eb">Generate XML &
+                            XSD</button>
+                    </form>
+                    <form method="post" action="/remove_csv" style="margin:0"
+                        onsubmit="return confirm('Remove CSV {{ f }}?');">
+                        <input type="hidden" name="csv_name" value="{{ f }}" />
+                        <button class="btn" type="submit" aria-label="Delete CSV {{ f }}" title="Delete"
+                            style="background-color:#dc2626;display:flex;align-items:center;justify-content:center;padding:4px;border-radius:6px;">
+                            Remove
+                        </button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted" style="font-size:0.9rem">No CSV files uploaded yet.</p>
+        {% endif %}
+    </div>
+
+    <div style="margin-bottom:24px">
+        <strong style="display:block;margin:10px 0 6px">XML & XSD files</strong>
+        {% if xml_xsd_pairs and xml_xsd_pairs|length > 0 %}
+        <ul
+            style="list-style:none;padding:0;margin:0;max-height:180px;overflow:auto;border:1px solid #e2e8f0;border-radius:6px">
+            {% for xml_name, xsd_name in xml_xsd_pairs %}
+            <li
+                style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:0.9rem">
+                <span>{{ xml_name }} → <em style="color:#64748b">{{ xsd_name }}</em></span>
+                <div style="display: flex; gap:6px;flex-wrap:wrap">
+                    <form method="post" action="/rpc_validate" style="margin:0">
+                        <input type="hidden" name="xml_name" value="{{ xml_name }}" />
+                        <input type="hidden" name="xsd_name" value="{{ xsd_name }}" />
+                        <button class="btn" type="submit"
+                            style="padding:4px 8px;font-size:0.9rem;background-color:#1fbb48">Validate</button>
+                    </form>
+                    <form method="post" action="/rpc_process_xml" style="margin:0">
+                        <input type="hidden" name="xml_name" value="{{ xml_name }}" />
+                        <button class="btn" type="submit"
+                            style="padding:4px 8px;font-size:0.9rem;background-color:#eb9f25">Send to DB</button>
+                    </form>
+                    <form method="post" action="/remove_xml_xsd" style="margin:0"
+                        onsubmit="return confirm('Remove XML {{ xml_name }} and XSD {{ xsd_name }}?');">
+                        <input type="hidden" name="xml_name" value="{{ xml_name }}" />
+                        <input type="hidden" name="xsd_name" value="{{ xsd_name }}" />
+                        <button class="btn" type="submit" aria-label="Delete XML/XSD pair {{ xml_name }}"
+                            title="Delete pair"
+                            style="background-color:#dc2626;display:flex;align-items:center;justify-content:center;padding:4px;border-radius:6px;">
+                            Remove
+                        </button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted" style="font-size:0.9rem">No XML/XSD pairs found.</p>
+        {% endif %}
+    </div>
+
+    <div style="margin-bottom:24px">
+        <strong style="display:block;margin:10px 0 6px">Firestore Collections</strong>
+        {% if db_collections and db_collections|length > 0 %}
+        <ul
+            style="list-style:none;padding:0;margin:0;max-height:150px;overflow:auto;border:1px solid #e2e8f0;border-radius:6px">
+            {% for col in db_collections %}
+            <li style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:0.9rem">{{ col }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted" style="font-size:0.9rem">No collections found (or RPC unavailable).</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    // Additional visual tweaks after global script sets labels
+    ['csvZone', 'xmlZone'].forEach(id => {
+        const zone = document.getElementById(id);
+        if (zone) {
+            zone.addEventListener('dragenter', () => zone.style.transform = 'scale(1)');
+            zone.addEventListener('dragleave', () => zone.style.transform = 'scale(1)');
+            zone.addEventListener('drop', () => zone.style.transform = 'scale(1)');
+        }
+    });
+
+</script>
+{% endblock %}

@@ -1,11 +1,11 @@
 services:
-  mongo:
-    image: mongo:latest
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
+  # mongo:
+  #   image: mongo:latest
+  #   container_name: mongodb
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo-data:/data/db
   
   grpc-server:
     build: ./grpc-server
@@ -14,8 +14,6 @@ services:
       - ./data:/data/shared
     ports:
       - "50051:50051"
-    depends_on:
-      - mongo
 
   rest-api:
     build: ./rest-api
@@ -24,15 +22,15 @@ services:
       - "8080:8080"
     depends_on:
       - grpc-server
-      - mongo
 
   flask-app:
     build: ./flask-app
     container_name: flask_app
+    volumes:
+      - ./data:/data/shared
+    environment:
+      - GRPC_SERVER=grpc-server:50051
     ports:
       - "5000:5000"
     depends_on:
       - rest-api
-
-volumes:
-  mongo-data:

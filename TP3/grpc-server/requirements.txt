@@ -1,2 +1,4 @@
 grpcio
 grpcio-tools
+lxml
+firebase-admin
