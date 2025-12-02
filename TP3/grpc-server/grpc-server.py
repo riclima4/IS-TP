@@ -73,9 +73,12 @@ class XmlServiceServicer(grpc_pb2_grpc.XmlServiceServicer):
 
             with csv_file.open('r', encoding='utf-8', newline='') as f:
                 reader = csv.DictReader(f)
-                root = ET.Element("data")
+                headers = [h.strip().replace(" ", "_") for h in (reader.fieldnames or [])]
+                root_name = csv_file.stem
+                row_name = root_name + "_record"
+                root = ET.Element(root_name)
                 for row in reader:
-                    record_el = ET.SubElement(root, "record")
+                    record_el = ET.SubElement(root, row_name)
                     for key, value in row.items():
                         tag = key.strip().replace(" ", "_")
                         ET.SubElement(record_el, tag).text = (value or "").strip()
@@ -93,8 +96,8 @@ class XmlServiceServicer(grpc_pb2_grpc.XmlServiceServicer):
             with xml_file.open('wb') as out:
                 out.write(xml_bytes)
 
-            # Also generate XSD
-            msg = self._xml_to_xsd_internal(xml_file.name)
+            # Also generate XSD from CSV headers to preserve semantics
+            msg = self._xsd_from_headers(root_name, row_name, headers, xml_file.stem)
             success = not msg.startswith("Erro")
             return grpc_pb2.OperationReply(success=success, message=msg)
         except Exception as e:
@@ -149,6 +152,35 @@ class XmlServiceServicer(grpc_pb2_grpc.XmlServiceServicer):
             return xsd_str
         except Exception as e:
             return f"Erro ao converter XML para XSD: {e}"
+
+    def _xsd_from_headers(self, root_name: str, row_name: str, headers: list[str], stem: str) -> str:
+        try:
+            if not headers:
+                return "Erro: cabeçalhos CSV não encontrados"
+            xsd_root = ET.Element("xs:schema", attrib={"xmlns:xs": "http://www.w3.org/2001/XMLSchema"})
+            root_el = ET.SubElement(xsd_root, "xs:element", attrib={"name": root_name})
+            complex_type = ET.SubElement(root_el, "xs:complexType")
+            sequence = ET.SubElement(complex_type, "xs:sequence")
+            row_el = ET.SubElement(sequence, "xs:element", attrib={"name": row_name, "minOccurs": "0", "maxOccurs": "unbounded"})
+            row_ct = ET.SubElement(row_el, "xs:complexType")
+            row_seq = ET.SubElement(row_ct, "xs:sequence")
+            for h in headers:
+                ET.SubElement(row_seq, "xs:element", attrib={"name": h, "type": "xs:string", "minOccurs": "0"})
+            xsd_file = DATAFOLDER / (stem + ".xsd")
+            tree = ET.ElementTree(xsd_root)
+            try:
+                ET.indent(tree, space="  ")
+                tree.write(xsd_file, encoding='utf-8', xml_declaration=True)
+                xsd_str = ET.tostring(xsd_root, encoding='utf-8').decode('utf-8')
+            except AttributeError:
+                rough = ET.tostring(xsd_root, encoding='utf-8')
+                reparsed = minidom.parseString(rough)
+                xsd_str = reparsed.toprettyxml(indent="  ")
+                with xsd_file.open('w', encoding='utf-8') as f:
+                    f.write(xsd_str)
+            return xsd_str
+        except Exception as e:
+            return f"Erro ao gerar XSD a partir do CSV: {e}"
 
     def ValidateXml(self, request, context):
         try:
