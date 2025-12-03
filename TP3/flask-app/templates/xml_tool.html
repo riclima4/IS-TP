@@ -73,15 +73,23 @@
     </div>
 
     <div style="margin-bottom:24px">
-        <strong style="display:block;margin:10px 0 6px">XML & XSD files</strong>
-        {% if xml_xsd_pairs and xml_xsd_pairs|length > 0 %}
+        <strong style="display:block;margin:10px 0 6px">XML files</strong>
+        {% if xml_items and xml_items|length > 0 %}
         <ul
             style="list-style:none;padding:0;margin:0;max-height:180px;overflow:auto;border:1px solid #e2e8f0;border-radius:6px">
-            {% for xml_name, xsd_name in xml_xsd_pairs %}
+            {% for xml_name, xsd_name in xml_items %}
             <li
                 style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:0.9rem">
-                <span>{{ xml_name }} → <em style="color:#64748b">{{ xsd_name }}</em></span>
+                <span>
+                    {{ xml_name }}
+                    {% if xsd_name %}
+                    → <em style="color:#64748b">{{ xsd_name }}</em>
+                    {% else %}
+                    <em class="muted" style="margin-left:6px">(no XSD)</em>
+                    {% endif %}
+                </span>
                 <div style="display: flex; gap:6px;flex-wrap:wrap">
+                    {% if xsd_name %}
                     <form method="post" action="/rpc_validate" style="margin:0">
                         <input type="hidden" name="xml_name" value="{{ xml_name }}" />
                         <input type="hidden" name="xsd_name" value="{{ xsd_name }}" />
@@ -93,12 +101,14 @@
                         <button class="btn" type="submit"
                             style="padding:4px 8px;font-size:0.9rem;background-color:#eb9f25">Send to DB</button>
                     </form>
+                    {% endif %}
                     <form method="post" action="/remove_xml_xsd" style="margin:0"
-                        onsubmit="return confirm('Remove XML {{ xml_name }} and XSD {{ xsd_name }}?');">
+                        onsubmit="return confirm('Remove XML {{ xml_name }}{% if xsd_name %} and XSD {{ xsd_name }}{% endif %}?');">
                         <input type="hidden" name="xml_name" value="{{ xml_name }}" />
+                        {% if xsd_name %}
                         <input type="hidden" name="xsd_name" value="{{ xsd_name }}" />
-                        <button class="btn" type="submit" aria-label="Delete XML/XSD pair {{ xml_name }}"
-                            title="Delete pair"
+                        {% endif %}
+                        <button class="btn" type="submit" aria-label="Delete XML/XSD {{ xml_name }}" title="Delete"
                             style="background-color:#dc2626;display:flex;align-items:center;justify-content:center;padding:4px;border-radius:6px;">
                             Remove
                         </button>
@@ -108,7 +118,7 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="muted" style="font-size:0.9rem">No XML/XSD pairs found.</p>
+        <p class="muted" style="font-size:0.9rem">No XML files found.</p>
         {% endif %}
     </div>
 
@@ -126,6 +136,39 @@
         {% endif %}
     </div>
 
+    <div class="card" style="margin-top:24px">
+        <h3 style="margin:0 0 12px">Group By</h3>
+        <form method="post" action="/rpc_group" style="display:grid;gap:10px">
+            <div class="row">
+                <label>XML file</label>
+                <select class="select" name="xml_name" required>
+                    {% for xml_name, xsd_name in xml_items %}
+                    <option value="{{ xml_name }}">{{ xml_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="row">
+                <label>Group tag (header)</label>
+                <input class="select" type="text" name="group_tag" placeholder="e.g. country" required />
+            </div>
+            <div class="row">
+                <label>Output name (optional)</label>
+                <input class="select" type="text" name="output_name" placeholder="grouped_output" />
+            </div>
+            <div class="row">
+                <label>Aggregations (optional)</label>
+                <div id="agg-list" style="display:grid;gap:6px"></div>
+                <button type="button" class="btn secondary" onclick="addAgg()" style="width:auto">Add
+                    aggregation</button>
+                <small class="muted">Aggregation examples: field=sales, op=sum|avg|min|max|count (count ignores
+                    field)</small>
+            </div>
+            <div class="controls">
+                <button class="btn" type="submit">Run Group</button>
+            </div>
+        </form>
+    </div>
+
 </div>
 
 <script>
@@ -139,5 +182,27 @@
         }
     });
 
+</script>
+<script>
+    function addAgg() {
+        const container = document.getElementById('agg-list');
+        const row = document.createElement('div');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr 180px auto';
+        row.style.gap = '6px';
+        row.innerHTML = `
+            <input class="select" type="text" name="agg_field" placeholder="field (leave empty for count)" />
+            <select class="select" name="agg_op">
+                <option value="">-- op --</option>
+                <option value="count">count</option>
+                <option value="sum">sum</option>
+                <option value="avg">avg</option>
+                <option value="min">min</option>
+                <option value="max">max</option>
+            </select>
+            <button type="button" class="btn" style="background:#ef4444;width:auto" onclick="this.parentElement.remove()">Remove</button>
+        `;
+        container.appendChild(row);
+    }
 </script>
 {% endblock %}

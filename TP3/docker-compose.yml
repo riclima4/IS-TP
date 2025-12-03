@@ -18,6 +18,8 @@ services:
   rest-api:
     build: ./rest-api
     container_name: rest_api
+    volumes:
+      - ./data:/data/shared
     ports:
       - "8080:8080"
     depends_on:

@@ -7,4 +7,5 @@ Docker compose up --build
 
 O mesmo que o TP2 mas:
  GRPC em vez de XML rpc
+ XML e XSD gerados pelo csv mantem semantica
  

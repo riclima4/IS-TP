@@ -5,6 +5,7 @@ import os
 import sys
 import subprocess
 import grpc
+import requests
 
 app = Flask(__name__)
 
@@ -41,15 +42,16 @@ def listcsvfiles():
 	except Exception:
 		return []
 
-def list_xml_xsd_pairs():
+def list_xmls_with_xsd_flag():
+	"""Return list of tuples (xml_name, xsd_name_or_None)."""
 	try:
 		xml_files = [p for p in DATAFOLDER.glob("*.xml") if p.is_file()]
-		pairs = []
+		items = []
 		for xml in xml_files:
 			xsd = DATAFOLDER / f"{xml.stem}.xsd"
-			if xsd.exists():
-				pairs.append((xml.name, xsd.name))
-		return sorted(pairs)
+			items.append((xml.name, xsd.name if xsd.exists() else None))
+		# sort by xml name
+		return sorted(items, key=lambda t: t[0])
 	except Exception:
 		return []
     
@@ -59,7 +61,7 @@ def index():
 		"xml_tool.html",
 		page="xml_tool",
 		csv_files=listcsvfiles(),
-		xml_xsd_pairs=list_xml_xsd_pairs(),
+		xml_items=list_xmls_with_xsd_flag(),
 		db_collections=get_db_collections()
 	)
 
@@ -69,12 +71,12 @@ def rpc_generate_xml():
 	csv_name = request.form.get("csv_name")
 	if not csv_name:
 		return render_template(
-			"xml_tool.html", page="xml_tool", error="No CSV filename provided.", csv_files=listcsvfiles(),xml_xsd_pairs=list_xml_xsd_pairs(),db_collections=get_db_collections(),
+			"xml_tool.html", page="xml_tool", error="No CSV filename provided.", csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections(),
 		), 400
 	filename = secure_filename(csv_name)
 	if not filename.lower().endswith('.csv'):
 		return render_template(
-			"xml_tool.html", page="xml_tool", error="Invalid CSV filename.", csv_files=listcsvfiles(),xml_xsd_pairs=list_xml_xsd_pairs(),db_collections=get_db_collections()
+			"xml_tool.html", page="xml_tool", error="Invalid CSV filename.", csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 400
 	# Optional: quickly verify local existence (may not exist if volume not shared but keep soft check)
 	local_file = DATAFOLDER / filename
@@ -90,11 +92,11 @@ def rpc_generate_xml():
 			resp = stub.CsvToXml(grpc_pb2.CsvToXmlRequest(csv_name=filename))
 			if not resp.success:
 				return render_template(
-					"xml_tool.html", page="xml_tool", error=resp.message, csv_files=listcsvfiles(),xml_xsd_pairs=list_xml_xsd_pairs(),db_collections=get_db_collections()
+					"xml_tool.html", page="xml_tool", error=resp.message, csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 				), 500
 	except Exception as e:
 		return render_template(
-			"xml_tool.html", page="xml_tool", error=f"gRPC error: {e}", csv_files=listcsvfiles(),xml_xsd_pairs=list_xml_xsd_pairs(),db_collections=get_db_collections()
+			"xml_tool.html", page="xml_tool", error=f"gRPC error: {e}", csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 500
 	xml_filename = filename.rsplit('.', 1)[0] + '.xml'
 	xsd_filename = filename.rsplit('.', 1)[0] + '.xsd'
@@ -104,7 +106,7 @@ def rpc_generate_xml():
 		message=f"XML generation requested for '{filename}' {missing_note}. '{xml_filename}' and '{xsd_filename}' generated.",
 		success=True,
 		csv_files=listcsvfiles(),
-		xml_xsd_pairs = list_xml_xsd_pairs(),
+		xml_items=list_xmls_with_xsd_flag(),
 		db_collections=get_db_collections(),
 	), 200
 
@@ -139,7 +141,7 @@ def convert():
 			message=f"Failed to save file: {e}",
 			success=False,
 			csv_files=listcsvfiles(),
-			xml_xsd_pairs = list_xml_xsd_pairs(),
+			xml_items=list_xmls_with_xsd_flag(),
 			db_collections=get_db_collections(),
 		), 400
             
@@ -149,7 +151,7 @@ def convert():
 		message="CSV uploaded successfully",
 		success=True,
 		csv_files=listcsvfiles(),
-		xml_xsd_pairs=list_xml_xsd_pairs(),
+		xml_items=list_xmls_with_xsd_flag(),
 		db_collections=get_db_collections(),
 	), 200
 
@@ -164,7 +166,7 @@ def rpc_validate():
 			page="xml_tool",
 			error="Missing XML or XSD filename.",
 			csv_files=listcsvfiles(),
-			xml_xsd_pairs=list_xml_xsd_pairs(),
+			xml_items=list_xmls_with_xsd_flag(),
 			db_collections=get_db_collections(),
 		), 400
 	target = os.environ.get("GRPC_SERVER", "grpc_server:50051")
@@ -178,7 +180,7 @@ def rpc_validate():
 			page="xml_tool",
 			error=f"gRPC error: {e}",
 			csv_files=listcsvfiles(),
-			xml_xsd_pairs=list_xml_xsd_pairs(),
+			xml_items=list_xmls_with_xsd_flag(),
 			db_collections=get_db_collections(),
 		), 500
 	success = resp.success
@@ -188,7 +190,7 @@ def rpc_validate():
 		message=resp.message,
 		success=success,
 		csv_files=listcsvfiles(),
-		xml_xsd_pairs=list_xml_xsd_pairs(),
+		xml_items=list_xmls_with_xsd_flag(),
 		db_collections=get_db_collections(),
 	), 200 if success else 400
     
@@ -206,7 +208,7 @@ def send_to_db():
 				message=resp.message,
 				success=resp.success,
 				csv_files=listcsvfiles(),
-				xml_xsd_pairs=list_xml_xsd_pairs(),
+				xml_items=list_xmls_with_xsd_flag(),
 				db_collections=get_db_collections(),
 			), 200 if resp.success else 400
 	except Exception as e:
@@ -215,7 +217,7 @@ def send_to_db():
 			page="xml_tool",
 			error= f"gRPC error: {e}",
 			csv_files=listcsvfiles(),
-			xml_xsd_pairs=list_xml_xsd_pairs(),
+			xml_items=list_xmls_with_xsd_flag(),
 			db_collections=get_db_collections(),
 		), 500
 
@@ -229,6 +231,61 @@ def get_db_collections():
 	except Exception:
 		return []
 
+@app.route("/rpc_group", methods=["POST"])
+def rpc_group():
+	xml_name = request.form.get("xml_name")
+	group_tag = request.form.get("group_tag")
+	output_name = request.form.get("output_name")
+	# aggregates come as multiple fields: agg_field[], agg_op[]
+	agg_fields = request.form.getlist("agg_field")
+	agg_ops = request.form.getlist("agg_op")
+	agg = []
+	for f, o in zip(agg_fields, agg_ops):
+		if o:
+			agg.append({"field": f or None, "op": o})
+	if not xml_name or not group_tag:
+		return render_template(
+			"xml_tool.html",
+			page="xml_tool",
+			error="Missing xml_name or group_tag",
+			csv_files=listcsvfiles(),
+			xml_items=list_xmls_with_xsd_flag(),
+			db_collections=get_db_collections(),
+		), 400
+	# Default to docker compose service name 'rest-api' (hyphen), not 'rest_api'
+	api = os.environ.get("REST_API_URL", "http://rest-api:8080")
+	try:
+		payload = {"xml_name": xml_name, "group_tag": group_tag, "output_name": output_name, "agg": agg}
+		r = requests.post(f"{api}/group", json=payload, timeout=30)
+		if r.status_code != 200:
+			return render_template(
+				"xml_tool.html",
+				page="xml_tool",
+				error=r.text,
+				csv_files=listcsvfiles(),
+				xml_items=list_xmls_with_xsd_flag(),
+				db_collections=get_db_collections(),
+			), r.status_code
+		data = r.json()
+		return render_template(
+			"xml_tool.html",
+			page="xml_tool",
+			message=f"{data.get('message')} → {data.get('output_xml')}",
+			success=True,
+			csv_files=listcsvfiles(),
+			xml_items=list_xmls_with_xsd_flag(),
+			db_collections=get_db_collections(),
+		), 200
+	except Exception as e:
+		return render_template(
+			"xml_tool.html",
+			page="xml_tool",
+			error=f"REST error: {e}",
+			csv_files=listcsvfiles(),
+			xml_items=list_xmls_with_xsd_flag(),
+			db_collections=get_db_collections(),
+		), 500
+
 @app.route("/remove_csv", methods=["POST"])
 def remove_csv():
 	csv_name = request.form.get("csv_name")
@@ -236,18 +293,18 @@ def remove_csv():
 	if not target or not target.exists():
 		return render_template(
 			"xml_tool.html", page="xml_tool", error="CSV not found.",
-			csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+			csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 404
 	try:
 		target.unlink()
 	except Exception as e:
 		return render_template(
 			"xml_tool.html", page="xml_tool", error=f"Error removing CSV: {e}",
-			csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+			csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 500
 	return render_template(
 		"xml_tool.html", page="xml_tool", message=f"Removed {csv_name}", success=True,
-		csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+		csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 	), 200
 
 @app.route("/remove_xml_xsd", methods=["POST"])
@@ -256,10 +313,11 @@ def remove_xml_xsd():
 	xsd_name = request.form.get("xsd_name")
 	xml_path = DATAFOLDER / xml_name if xml_name else None
 	xsd_path = DATAFOLDER / xsd_name if xsd_name else None
-	if not xml_path or not xsd_path:
+	# Allow removing XML even if XSD is missing, and vice versa
+	if not xml_path and not xsd_path:
 		return render_template(
-			"xml_tool.html", page="xml_tool", error="Missing filenames.",
-			csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+			"xml_tool.html", page="xml_tool", error="No filenames provided.",
+			csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 400
 	removed_any = False
 	try:
@@ -272,16 +330,16 @@ def remove_xml_xsd():
 	except Exception as e:
 		return render_template(
 			"xml_tool.html", page="xml_tool", error=f"Error removing files: {e}",
-			csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+			csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 500
 	if not removed_any:
 		return render_template(
 			"xml_tool.html", page="xml_tool", error="Files not found.",
-			csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+			csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 		), 404
 	return render_template(
-		"xml_tool.html", page="xml_tool", message=f"Removed {xml_name} and {xsd_name}", success=True,
-		csv_files=listcsvfiles(), xml_xsd_pairs=list_xml_xsd_pairs(), db_collections=get_db_collections()
+		"xml_tool.html", page="xml_tool", message=f"Removed {xml_name or ''}{' and ' if xml_name and xsd_name else ''}{xsd_name or ''}", success=True,
+		csv_files=listcsvfiles(), xml_items=list_xmls_with_xsd_flag(), db_collections=get_db_collections()
 	), 200
 
 @app.route("/xmltool")
